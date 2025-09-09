@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neon Mirror – Zwickau</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hud">
+    <h1>NEON MIRROR · ZWICKAU</h1>
+    <div class="stats">
+      <div>Grid‑Stress: <span id="gridStress">–</span></div>
+      <div>Energie‑Multiplikator: <span id="energyMult">–</span>x</div>
+      <div>Strompreis (ct/kWh): <span id="awattar">–</span></div>
+      <div>Luftqualität (Index): <span id="air">–</span></div>
+      <div>Pegel Zwickau (cm): <span id="pegel">–</span></div>
+      <div>Zeit: <span id="clock">–</span></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="city" id="city">
+      <div class="power-state" id="powerState">Initialisiere Daten…</div>
+    </section>
+
+    <section class="controls">
+      <button id="btn_patrol">Drohnen‑Patrouille</button>
+      <button id="btn_overclock">Serverfarm übertakten</button>
+      <button id="btn_battery">Batterien schmuggeln</button>
+      <div class="log" id="log"></div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Client‑only Prototype (GitHub Pages). Daten: aWATTar (DE Day‑Ahead), UBA Luftdaten (DESN091), PEGELONLINE. Ohne Backend. </small>
+  </footer>
+
+  <script type="module">
+    import { initUI } from './js/ui.js';
+    import { startApp } from './js/main.js';
+    initUI();
+    startApp();
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+:root{ --bg:#080a10; --fg:#d6f7ff; --neon:#49e0ff; --warn:#ff3b81; --ok:#48ff8a; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{ background:#080a10; color:var(--fg); font:15px/1.45 system-ui, Segoe UI, Roboto, Arial }
+header.hud{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;gap:16px;flex-wrap:wrap}
+h1{letter-spacing:1.5px;color:var(--neon);text-shadow:0 0 12px #19d2ff}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:10px;max-width:980px}
+main{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;padding:12px 20px}
+.city{min-height:360px;border:1px solid #182030;border-radius:10px;position:relative;overflow:hidden;background:linear-gradient(180deg,#0b0f1a 0%,#070a11 100%)}
+.power-state{position:absolute;inset:auto 0 14px 0;text-align:center;font-weight:600;opacity:.95}
+.controls{border:1px solid #182030;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+button{background:transparent;border:1px solid #284657;color:var(--fg);padding:10px 12px;border-radius:8px;cursor:pointer;transition:.15s}
+button:hover{border-color:#49e0ff;box-shadow:0 0 10px #19d2ff44}
+button:disabled{opacity:.5;cursor:not-allowed}
+.log{height:240px;border:1px dashed #233142;border-radius:8px;padding:10px;overflow:auto;font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+footer{padding:10px 20px;opacity:.6;text-align:center}
+.flicker{animation:flick .9s infinite}
+@keyframes flick{0%{filter:brightness(.7)} 50%{filter:brightness(1.2)} 100%{filter:brightness(.8)}}
+.warn{color:#ff3b81} .ok{color:#48ff8a}
