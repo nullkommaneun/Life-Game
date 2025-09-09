@@ -1,11 +1,13 @@
 // js/main.js
-import { fetchAwattarDE, fetchUBA_Zwickau, fetchPegelZwickau } from './dataAdapters.js';
+import { fetchAwattarDE, fetchOpenMeteoAirZwickau, fetchPegelZwickau } from './dataAdapters.js';
 import { computeZwickauGridStress, actionCost } from './simMapping.js';
 import { initUI, updateUI, pushLog, onEvent } from './ui.js';
+import { initCity, updateCity } from './events.js';
 
-let state = { energy: 100, last: { airIndex:null, pegelCm:null, priceCt:null, stress:0, energyMult:1, label:'–' } };
+let state = { energy: 100, last: { pm25:null, pegelCm:null, priceCt:null, stress:0, energyMult:1, label:'–' } };
 
 export async function startApp(){
+  initCity();
   onEvent('act', (type)=>{
     if(type==='patrol') doAction('Drohnen‑Patrouille', 12);
     if(type==='battery') doAction('Batterien schmuggeln', 8);
@@ -15,23 +17,28 @@ export async function startApp(){
   setInterval(refreshData, 60_000);
 }
 
+// one-shot guard to avoid overlapping fetch cycles on slow networks
+let fetching = false;
 async function refreshData(){
+  if(fetching) return;
+  fetching = true;
   try{
-    const [price, air, pegel] = await Promise.all([
+    const [price, pm25, pegel] = await Promise.all([
       fetchAwattarDE(),
-      fetchUBA_Zwickau(),
+      fetchOpenMeteoAirZwickau(),
       fetchPegelZwickau()
     ]);
     const priceCt = price?.ct_kwh ?? null;
-    const airIndex = air ?? null;
     const pegelCm = pegel ?? null;
 
-    const { stress, energyMult, label } = computeZwickauGridStress({ airIndex, pegelCm, priceCt });
-    state.last = { airIndex, pegelCm, priceCt, stress, energyMult, label };
+    const { stress, energyMult, label } = computeZwickauGridStress({ pm25, pegelCm, priceCt });
+    state.last = { pm25, pegelCm, priceCt, stress, energyMult, label };
     updateUI(state.last);
+    updateCity({ ...state.last });
     pushLog(`Daten aktualisiert – Status: ${label}, Multiplier ${energyMult}x`);
     if(stress>0.75) pushLog(`<span class="warn">Warnung: Netzspannung kritisch – Aktionen extrem teuer.</span>`);
   }catch(e){ pushLog(`<span class="warn">Datenfehler:</span> ${e.message}`); }
+  finally{ fetching = false; }
 }
 
 function doAction(name, base){

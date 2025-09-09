@@ -11,10 +11,10 @@ export function initUI(){
 }
 function tickClock(){ clockEl.textContent = new Date().toLocaleTimeString(); }
 export function updateUI(d){
-  const { airIndex, pegelCm, priceCt, label, stress, energyMult } = d;
+  const { pm25, pegelCm, priceCt, label, stress, energyMult } = d;
   gridEl.textContent = `${Math.round(stress*100)}% (${label})`;
   multEl.textContent = energyMult;
-  airEl.textContent = airIndex!=null ? airIndex : '–';
+  airEl.textContent = (typeof pm25==='number') ? pm25.toFixed(1) : '–';
   pegEl.textContent = pegelCm!=null ? pegelCm : '–';
   awEl.textContent = priceCt!=null ? priceCt.toFixed(2) : '–';
   cityEl.classList.toggle('flicker', stress>0.6);

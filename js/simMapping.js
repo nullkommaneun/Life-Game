@@ -1,10 +1,12 @@
 // js/simMapping.js
-export function computeZwickauGridStress({ airIndex, pegelCm, priceCt }){
-  const air = clamp((airIndex - 20)/60, 0, 1);        // 20→80 Index
-  const peg = pegelCm!=null ? clamp((pegelCm - 120)/180, 0, 1) : 0.2; // 120→300 cm
-  const cost = priceCt!=null ? clamp((priceCt - 12)/18, 0, 1) : 0.3;  // 12→30 ct/kWh
+// Compute master stress from three inputs
+export function computeZwickauGridStress({ pm25, pegelCm, priceCt }){
+  // pm2.5 mapping (µg/m³): 0–10 gut, 10–25 moderat, 25–50 schlecht, 50+ sehr schlecht
+  const air = clamp((pm25 - 10)/40, 0, 1);
+  const peg = pegelCm!=null ? clamp((pegelCm - 120)/180, 0, 1) : 0.2;
+  const cost = priceCt!=null ? clamp((priceCt - 12)/18, 0, 1) : 0.3;
 
-  const stress = clamp(0.4*cost + 0.35*air + 0.25*peg, 0, 1);
+  const stress = clamp(0.42*cost + 0.33*air + 0.25*peg, 0, 1);
   const energyMult = roundTo(mapRange(stress, 0, 1, 0.6, 2.4), 2);
   const label = stress < 0.25 ? 'Stabil' : stress < 0.6 ? 'Angespannt' : 'Kritisch';
   return { stress, energyMult, label };
