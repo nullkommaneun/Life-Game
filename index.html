@@ -13,7 +13,7 @@
       <div>Grid‑Stress: <span id="gridStress">–</span></div>
       <div>Energie‑Multiplikator: <span id="energyMult">–</span>x</div>
       <div>Strompreis (ct/kWh): <span id="awattar">–</span></div>
-      <div>Luftqualität (Index): <span id="air">–</span></div>
+      <div>Luftqualität (PM2.5 µg/m³): <span id="air">–</span></div>
       <div>Pegel Zwickau (cm): <span id="pegel">–</span></div>
       <div>Zeit: <span id="clock">–</span></div>
     </div>
@@ -21,6 +21,12 @@
 
   <main>
     <section class="city" id="city">
+      <!-- Visual Layer: wird in events.js befüllt -->
+      <div class="city-bg" id="cityBg"></div>
+      <div class="city-smog" id="citySmog"></div>
+      <div class="city-water" id="cityWater"></div>
+      <div class="city-neon" id="cityNeon"></div>
+      <div class="city-ticker" id="cityTicker"></div>
       <div class="power-state" id="powerState">Initialisiere Daten…</div>
     </section>
 
@@ -33,7 +39,7 @@
   </main>
 
   <footer>
-    <small>Client‑only Prototype (GitHub Pages). Daten: aWATTar (DE Day‑Ahead), UBA Luftdaten (DESN091), PEGELONLINE. Ohne Backend. </small>
+    <small>Client‑only Prototype (GitHub Pages). Daten: aWATTar (DE Day‑Ahead), Open‑Meteo Air Quality (Zwickau), PEGELONLINE. Ohne Backend.</small>
   </footer>
 
   <script type="module">
