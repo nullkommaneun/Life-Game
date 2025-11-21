@@ -2,8 +2,15 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Zwickau Dashboard</title>
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#121212">
+
     <style>
         :root {
             --bg-color: #121212;
@@ -12,6 +19,7 @@
             --accent: #d32f2f; /* Zwickau Rot */
             --dim-text: #aaa;
             --warning: #ff9800;
+            --link-blue: #2196f3;
         }
 
         body {
@@ -20,7 +28,8 @@
             color: var(--text-main);
             margin: 0;
             padding: 20px;
-            padding-bottom: 80px; /* Platz für Debugger/Footer */
+            padding-bottom: 100px; /* Platz für Footer */
+            -webkit-tap-highlight-color: transparent;
         }
 
         h1 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; font-weight: 600; letter-spacing: 1px; }
@@ -42,9 +51,10 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             border-left: 5px solid var(--accent);
             transition: transform 0.2s;
+            position: relative;
         }
         
-        .card:active { transform: scale(0.98); } /* Taptisches Feedback auf Mobile */
+        .card:active { transform: scale(0.98); }
 
         .card h2 { 
             margin-top: 0; 
@@ -59,12 +69,33 @@
         .big-value { font-size: 2.5rem; font-weight: 700; margin: 10px 0; }
         .sub-info { font-size: 0.9rem; color: var(--dim-text); }
 
-        /* Abfahrtsliste Styling */
-        .departure-list {
-            list-style: none;
-            padding: 0;
-            margin: 10px 0 0 0;
+        /* Quick Links Section */
+        .quick-links {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
         }
+
+        .action-btn {
+            flex: 1;
+            background: #333;
+            border: 1px solid #444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .action-btn.nav { background: #1a3b5c; border-color: #2196f3; }
+
+        /* Abfahrtsliste Styling */
+        .departure-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
         .departure-item {
             display: flex;
             justify-content: space-between;
@@ -96,7 +127,7 @@
             font-family: "Courier New", monospace;
             font-size: 0.75rem;
             white-space: pre-wrap;
-            display: none; /* Zeigt sich nur bei Fehlern */
+            display: none;
             border-radius: 8px;
         }
 
@@ -114,6 +145,8 @@
             cursor: pointer;
             text-transform: uppercase;
             font-weight: bold;
+            -webkit-user-select: none;
+            user-select: none;
         }
     </style>
 </head>
@@ -148,6 +181,18 @@
             </div>
         </div>
 
+        <div class="card" style="border-color: #9c27b0;">
+            <h2>Schnellzugriff</h2>
+            <div class="quick-links">
+                <a href="https://www.google.com/maps/dir/?api=1&destination=Zwickau+Hbf" target="_blank" class="action-btn nav">
+                    <span>🏠</span> Nach Hause (Hbf)
+                </a>
+                <a href="https://www.google.com/search?q=Zwickau+News" target="_blank" class="action-btn">
+                    <span>📰</span> News
+                </a>
+            </div>
+        </div>
+
     </div>
 
     <button class="refresh-btn" onclick="updateAll()">Aktualisieren</button>
@@ -155,11 +200,8 @@
     <div id="debug-console"></div>
 
     <script>
-        // --- KONFIGURATION ---
-        // Wir suchen nach dieser Station. Falls "Neumarkt" nicht passt, hier ändern.
         const STATION_SEARCH_NAME = "Zwickau, Neumarkt";
         
-        // --- SYSTEM TOOLS ---
         function log(msg, isError = false) {
             console.log(msg);
             if (isError) {
@@ -169,17 +211,14 @@
             }
         }
 
-        // --- UHRZEIT ---
         function updateTime() {
             const now = new Date();
             document.getElementById('time-display').innerText = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'});
             document.getElementById('date-display').innerText = now.toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'long'});
         }
 
-        // --- WETTER (Open-Meteo) ---
         async function fetchWeather() {
             try {
-                // Koordinaten Zwickau: 50.7189, 12.4939
                 const url = 'https://api.open-meteo.com/v1/forecast?latitude=50.7189&longitude=12.4939&current_weather=true';
                 const res = await fetch(url);
                 if (!res.ok) throw new Error("Wetter API Error");
@@ -191,7 +230,6 @@
                 document.getElementById('wind-info').innerText = `Wind: ${w.windspeed} km/h`;
             } catch (e) {
                 log("Wetter Fehler: " + e.message, true);
-                document.getElementById('weather-desc').innerText = "Offline?";
             }
         }
 
@@ -204,17 +242,13 @@
             return c[code] || 'Unbekannt';
         }
 
-        // --- ÖPNV (Transport.rest API) ---
         let stationIdCache = localStorage.getItem('zwickau_station_id');
 
         async function fetchTransport() {
             const container = document.getElementById('transport-list');
-            
             try {
-                // Schritt 1: Station ID holen (falls noch nicht bekannt)
                 if (!stationIdCache) {
                     container.innerHTML = '<div class="sub-info">Suche Station ID...</div>';
-                    // Suche nach Station
                     const searchUrl = `https://v6.db.transport.rest/locations?query=${encodeURIComponent(STATION_SEARCH_NAME)}&results=1`;
                     const sRes = await fetch(searchUrl);
                     const sData = await sRes.json();
@@ -222,58 +256,42 @@
                     if (sData && sData.length > 0) {
                         stationIdCache = sData[0].id;
                         localStorage.setItem('zwickau_station_id', stationIdCache);
-                        log(`Station gefunden: ${sData[0].name} (ID: ${stationIdCache})`);
                     } else {
-                        throw new Error("Station 'Neumarkt' nicht gefunden");
+                        throw new Error("Station nicht gefunden");
                     }
                 }
 
-                // Schritt 2: Abfahrten laden
-                // duration=40 -> nächste 40 Minuten
                 const depUrl = `https://v6.db.transport.rest/stops/${stationIdCache}/departures?results=6&duration=40`;
                 const dRes = await fetch(depUrl);
                 const dData = await dRes.json();
 
                 if (!dData.departures) throw new Error("Keine Abfahrtsdaten");
 
-                // Schritt 3: Rendern
                 let html = '<ul class="departure-list">';
-                
-                // Filter: Wir entfernen Duplikate oder unwichtige Einträge bei Bedarf
-                const departures = dData.departures.slice(0, 5); // Nur die nächsten 5
+                const departures = dData.departures.slice(0, 5);
 
                 if (departures.length === 0) {
-                    html += '<li class="departure-item">Keine Abfahrten in den nächsten 40 Min.</li>';
+                    html += '<li class="departure-item">Keine Abfahrten (40 Min).</li>';
                 } else {
                     departures.forEach(dep => {
-                        // Zeit berechnen
                         const depTime = new Date(dep.when || dep.plannedWhen);
                         const now = new Date();
                         const diffMin = Math.floor((depTime - now) / 60000);
                         
-                        // Verspätungs-Check
                         let delayInfo = "";
                         if (dep.delay && dep.delay > 0) {
                             delayInfo = ` <span style="color:#ff5555">(+${dep.delay/60})</span>`;
                         }
 
                         const timeString = diffMin <= 0 ? "Sofort" : `${diffMin} min`;
-                        
-                        // Produktname (z.B. Tram, Bus) abkürzen wenn nötig
                         const lineName = dep.line.name || dep.line.productName || "?";
                         const destination = dep.direction || "Unbekannt";
 
                         html += `
                             <li class="departure-item">
-                                <div>
-                                    <span class="line-badge">${lineName}</span>
-                                    ${destination}
-                                </div>
-                                <div class="dep-time">
-                                    ${timeString}${delayInfo}
-                                </div>
-                            </li>
-                        `;
+                                <div><span class="line-badge">${lineName}</span> ${destination}</div>
+                                <div class="dep-time">${timeString}${delayInfo}</div>
+                            </li>`;
                     });
                 }
                 html += '</ul>';
@@ -281,9 +299,8 @@
 
             } catch (e) {
                 log("ÖPNV Fehler: " + e.message, true);
-                // Falls ID falsch war, Cache löschen für nächsten Versuch
                 if(e.message.includes("Station")) localStorage.removeItem('zwickau_station_id');
-                container.innerHTML = '<div class="sub-info" style="color:var(--accent)">Ladefehler (siehe unten)</div>';
+                container.innerHTML = '<div class="sub-info" style="color:var(--accent)">Ladefehler</div>';
             }
         }
 
@@ -293,11 +310,11 @@
             fetchTransport();
         }
 
-        // Start
         updateAll();
-        setInterval(updateTime, 1000); // Uhrzeit jede Sekunde
-        setInterval(fetchTransport, 60000); // ÖPNV jede Minute aktualisieren
+        setInterval(updateTime, 1000);
+        setInterval(fetchTransport, 60000);
 
     </script>
 </body>
 </html>
+ 
