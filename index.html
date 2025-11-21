@@ -1,52 +1,171 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Neon Mirror – Zwickau</title>
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zwickau Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --accent: #d32f2f; /* Zwickau Rot-ish */
+            --success: #4caf50;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 { text-align: center; font-size: 1.5rem; margin-bottom: 20px; }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Karten Design */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border-left: 4px solid var(--accent);
+        }
+
+        .card h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #333; padding-bottom: 10px;}
+        
+        .data-point { font-size: 2rem; font-weight: bold; margin: 10px 0; }
+        .sub-text { font-size: 0.9rem; color: #aaa; }
+
+        /* On-Screen Debugger (Mobile Friendly) */
+        #debug-log {
+            margin-top: 30px;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #333;
+            color: #ff5555;
+            font-family: monospace;
+            font-size: 0.8rem;
+            display: none; /* Standardmäßig versteckt, außer bei Fehler */
+            white-space: pre-wrap;
+        }
+
+        /* Button Styling */
+        .refresh-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <header class="hud">
-    <h1>NEON MIRROR · ZWICKAU</h1>
-    <div class="stats">
-      <div>Grid‑Stress: <span id="gridStress">–</span></div>
-      <div>Energie‑Multiplikator: <span id="energyMult">–</span>x</div>
-      <div>Strompreis (ct/kWh): <span id="awattar">–</span></div>
-      <div>Luftqualität (PM2.5 µg/m³): <span id="air">–</span></div>
-      <div>Pegel Zwickau (cm): <span id="pegel">–</span></div>
-      <div>Zeit: <span id="clock">–</span></div>
+
+    <h1>Dashboard Zwickau</h1>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>Zeit & Datum</h2>
+            <div id="time-display" class="data-point">--:--</div>
+            <div id="date-display" class="sub-text">Lade...</div>
+        </div>
+
+        <div class="card">
+            <h2>Wetter (Zentrum)</h2>
+            <div id="weather-temp" class="data-point">--°C</div>
+            <div id="weather-desc" class="sub-text">Lade Daten...</div>
+        </div>
+
+        <div class="card">
+            <h2>VMS Abfahrten</h2>
+            <div class="sub-text">Zentralhaltestelle</div>
+            <ul style="padding-left: 20px; margin-top:10px;">
+                <li>Linie 3: Eckersbach (in 4 min)</li>
+                <li>Linie 10: Weißenborn (in 12 min)</li>
+            </ul>
+            <div class="sub-text" style="font-size: 0.7rem; margin-top: 10px;">(Demo-Daten - API Anbindung nötig)</div>
+        </div>
     </div>
-  </header>
 
-  <main>
-    <section class="city" id="city">
-      <!-- Visual Layer: wird in events.js befüllt -->
-      <div class="city-bg" id="cityBg"></div>
-      <div class="city-smog" id="citySmog"></div>
-      <div class="city-water" id="cityWater"></div>
-      <div class="city-neon" id="cityNeon"></div>
-      <div class="city-ticker" id="cityTicker"></div>
-      <div class="power-state" id="powerState">Initialisiere Daten…</div>
-    </section>
+    <button class="refresh-btn" onclick="updateData()">Daten aktualisieren</button>
 
-    <section class="controls">
-      <button id="btn_patrol">Drohnen‑Patrouille</button>
-      <button id="btn_overclock">Serverfarm übertakten</button>
-      <button id="btn_battery">Batterien schmuggeln</button>
-      <div class="log" id="log"></div>
-    </section>
-  </main>
+    <div id="debug-log"></div>
 
-  <footer>
-    <small>Client‑only Prototype (GitHub Pages). Daten: aWATTar (DE Day‑Ahead), Open‑Meteo Air Quality (Zwickau), PEGELONLINE. Ohne Backend.</small>
-  </footer>
+    <script>
+        // Hilfsfunktion für den internen Debugger
+        function logError(msg) {
+            const debugDiv = document.getElementById('debug-log');
+            debugDiv.style.display = 'block';
+            const time = new Date().toLocaleTimeString();
+            debugDiv.innerText += `[${time}] ${msg}\n`;
+        }
 
-  <script type="module">
-    import { initUI } from './js/ui.js';
-    import { startApp } from './js/main.js';
-    initUI();
-    startApp();
-  </script>
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time-display').innerText = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('date-display').innerText = now.toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'long'});
+        }
+
+        // Wetterdaten von Open-Meteo für Zwickau (50.7189, 12.4939)
+        async function fetchWeather() {
+            try {
+                const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=50.7189&longitude=12.4939&current_weather=true');
+                if (!response.ok) throw new Error("Netzwerk Antwort war nicht ok");
+                
+                const data = await response.json();
+                const temp = data.current_weather.temperature;
+                const code = data.current_weather.weathercode;
+                
+                document.getElementById('weather-temp').innerText = `${temp}°C`;
+                document.getElementById('weather-desc').innerText = getWeatherDescription(code);
+                
+            } catch (error) {
+                document.getElementById('weather-desc').innerText = "Fehler beim Laden";
+                logError("Wetter API Fehler: " + error.message);
+            }
+        }
+
+        // WMO Wetter Code Übersetzung
+        function getWeatherDescription(code) {
+            const codes = {
+                0: 'Klarer Himmel',
+                1: 'Überwiegend klar', 2: 'Teils bewölkt', 3: 'Bewölkt',
+                45: 'Nebel', 48: 'Nebel',
+                51: 'Leichter Niesel', 53: 'Niesel', 55: 'Dichter Niesel',
+                61: 'Leichter Regen', 63: 'Regen', 65: 'Starker Regen',
+                71: 'Leichter Schnee', 73: 'Schnee', 75: 'Starker Schnee',
+                95: 'Gewitter'
+            };
+            return codes[code] || 'Unbekannt';
+        }
+
+        function updateData() {
+            updateTime();
+            fetchWeather();
+        }
+
+        // Init
+        updateData();
+        // Uhrzeit jede Sekunde aktualisieren
+        setInterval(updateTime, 1000);
+        // Wetter alle 15 Minuten
+        setInterval(fetchWeather, 900000); 
+
+    </script>
 </body>
 </html>
