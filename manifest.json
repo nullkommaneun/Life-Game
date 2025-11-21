@@ -1,0 +1,22 @@
+{
+    "name": "Zwickau Dash",
+    "short_name": "Zwickau",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#121212",
+    "theme_color": "#d32f2f",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/106/106121.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/106/106121.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
+ 
