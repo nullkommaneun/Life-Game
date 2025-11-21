@@ -20,6 +20,7 @@
             --dim-text: #aaa;
             --warning: #ff9800;
             --link-blue: #2196f3;
+            --good-green: #66bb6a;
         }
 
         body {
@@ -52,6 +53,8 @@
             border-left: 5px solid var(--accent);
             transition: transform 0.2s;
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
         
         .card:active { transform: scale(0.98); }
@@ -64,16 +67,16 @@
             letter-spacing: 0.5px;
             display: flex;
             justify-content: space-between;
+            margin-bottom: 15px;
         }
 
-        .big-value { font-size: 2.5rem; font-weight: 700; margin: 10px 0; }
+        .big-value { font-size: 2.5rem; font-weight: 700; margin: 5px 0; }
         .sub-info { font-size: 0.9rem; color: var(--dim-text); }
 
         /* Quick Links Section */
         .quick-links {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
         }
 
         .action-btn {
@@ -95,7 +98,7 @@
         .action-btn.nav { background: #1a3b5c; border-color: #2196f3; }
 
         /* Abfahrtsliste Styling */
-        .departure-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
+        .departure-list { list-style: none; padding: 0; margin: 0; }
         .departure-item {
             display: flex;
             justify-content: space-between;
@@ -116,6 +119,28 @@
             text-align: center;
         }
         .dep-time { font-weight: bold; color: var(--accent); }
+
+        /* News List */
+        .news-list { list-style: none; padding: 0; margin: 0; }
+        .news-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+        .news-item:last-child { border-bottom: none; }
+        .news-item a { color: var(--text-main); text-decoration: none; display: block;}
+        .news-date { font-size: 0.75rem; color: var(--dim-text); margin-top: 4px; display: block; }
+
+        /* AQI Badge */
+        .aqi-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            background: #333;
+            color: #fff;
+            margin-top: 5px;
+            display: inline-block;
+        }
 
         /* Mobile Debugger */
         #debug-console {
@@ -166,9 +191,14 @@
             <h2>Wetter (Zentrum)</h2>
             <div style="display:flex; align-items:center; gap:15px;">
                 <div id="weather-temp" class="big-value">--°</div>
-                <div id="weather-desc" class="sub-info" style="font-size:1.1rem;">Lade...</div>
+                <div>
+                    <div id="weather-desc" class="sub-info" style="font-size:1.1rem;">Lade...</div>
+                </div>
             </div>
-            <div class="sub-info" id="wind-info">Wind: -- km/h</div>
+            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span class="sub-info" id="wind-info">Wind: --</span>
+                <span id="aqi-display" class="aqi-badge">Luft: --</span>
+            </div>
         </div>
 
         <div class="card" style="border-color: #4caf50;">
@@ -181,14 +211,21 @@
             </div>
         </div>
 
+        <div class="card" style="border-color: #e91e63;">
+            <h2>Zwickau News</h2>
+            <ul id="news-list" class="news-list">
+                <li class="sub-info">Lade Nachrichten...</li>
+            </ul>
+        </div>
+
         <div class="card" style="border-color: #9c27b0;">
             <h2>Schnellzugriff</h2>
             <div class="quick-links">
                 <a href="https://www.google.com/maps/dir/?api=1&destination=Zwickau+Hbf" target="_blank" class="action-btn nav">
-                    <span>🏠</span> Nach Hause (Hbf)
+                    <span>🏠</span> Home
                 </a>
-                <a href="https://www.google.com/search?q=Zwickau+News" target="_blank" class="action-btn">
-                    <span>📰</span> News
+                <a href="https://www.google.com/search?q=Tankstellen+Zwickau+Preise" target="_blank" class="action-btn">
+                    <span>⛽</span> Tanken
                 </a>
             </div>
         </div>
@@ -217,20 +254,44 @@
             document.getElementById('date-display').innerText = now.toLocaleDateString('de-DE', {weekday: 'long', day: 'numeric', month: 'long'});
         }
 
+        // --- WETTER & AQI ---
         async function fetchWeather() {
             try {
+                // Zwickau Coords + AQI (Air Quality Index)
                 const url = 'https://api.open-meteo.com/v1/forecast?latitude=50.7189&longitude=12.4939&current_weather=true';
-                const res = await fetch(url);
-                if (!res.ok) throw new Error("Wetter API Error");
-                const data = await res.json();
+                const aqiUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=50.7189&longitude=12.4939&current=european_aqi';
 
-                const w = data.current_weather;
+                // Parallel abrufen
+                const [resW, resA] = await Promise.all([fetch(url), fetch(aqiUrl)]);
+                
+                if (!resW.ok) throw new Error("Wetter API Error");
+                
+                const dataW = await resW.json();
+                const w = dataW.current_weather;
+                
                 document.getElementById('weather-temp').innerText = Math.round(w.temperature) + "°";
                 document.getElementById('weather-desc').innerText = getWeatherCode(w.weathercode);
                 document.getElementById('wind-info').innerText = `Wind: ${w.windspeed} km/h`;
+
+                // AQI Verarbeiten
+                if (resA.ok) {
+                    const dataA = await resA.json();
+                    const aqi = dataA.current.european_aqi;
+                    updateAqiDisplay(aqi);
+                }
+
             } catch (e) {
-                log("Wetter Fehler: " + e.message, true);
+                log("Wetter/Luft Fehler: " + e.message, true);
             }
+        }
+
+        function updateAqiDisplay(aqi) {
+            const el = document.getElementById('aqi-display');
+            el.innerText = `Luft-Idx: ${aqi}`;
+            // Farben basierend auf European AQI
+            if (aqi <= 20) el.style.backgroundColor = "#4caf50"; // Gut
+            else if (aqi <= 40) el.style.backgroundColor = "#ff9800"; // Mäßig
+            else el.style.backgroundColor = "#f44336"; // Schlecht
         }
 
         function getWeatherCode(code) {
@@ -242,6 +303,7 @@
             return c[code] || 'Unbekannt';
         }
 
+        // --- ÖPNV ---
         let stationIdCache = localStorage.getItem('zwickau_station_id');
 
         async function fetchTransport() {
@@ -268,20 +330,17 @@
                 if (!dData.departures) throw new Error("Keine Abfahrtsdaten");
 
                 let html = '<ul class="departure-list">';
-                const departures = dData.departures.slice(0, 5);
+                const departures = dData.departures.slice(0, 4); // Nur 4 anzeigen wegen Platz
 
                 if (departures.length === 0) {
                     html += '<li class="departure-item">Keine Abfahrten (40 Min).</li>';
                 } else {
                     departures.forEach(dep => {
                         const depTime = new Date(dep.when || dep.plannedWhen);
-                        const now = new Date();
-                        const diffMin = Math.floor((depTime - now) / 60000);
+                        const diffMin = Math.floor((depTime - new Date()) / 60000);
                         
                         let delayInfo = "";
-                        if (dep.delay && dep.delay > 0) {
-                            delayInfo = ` <span style="color:#ff5555">(+${dep.delay/60})</span>`;
-                        }
+                        if (dep.delay && dep.delay > 0) delayInfo = ` <span style="color:#ff5555">+${Math.floor(dep.delay/60)}</span>`;
 
                         const timeString = diffMin <= 0 ? "Sofort" : `${diffMin} min`;
                         const lineName = dep.line.name || dep.line.productName || "?";
@@ -289,7 +348,9 @@
 
                         html += `
                             <li class="departure-item">
-                                <div><span class="line-badge">${lineName}</span> ${destination}</div>
+                                <div style="overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width: 65%;">
+                                    <span class="line-badge">${lineName}</span> ${destination}
+                                </div>
                                 <div class="dep-time">${timeString}${delayInfo}</div>
                             </li>`;
                     });
@@ -304,15 +365,62 @@
             }
         }
 
+        // --- NEWS (RSS via Proxy) ---
+        async function fetchNews() {
+            const container = document.getElementById('news-list');
+            try {
+                // Wir nutzen 'allorigins' als Proxy, um CORS zu umgehen
+                // Feed: Freie Presse Zwickau (Achtung: Links führen zur Paywall, aber Headlines sind lesbar)
+                const rssUrl = 'https://www.freiepresse.de/rss/zwickau'; 
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+                
+                const res = await fetch(proxyUrl);
+                const data = await res.json();
+                
+                if (!data.contents) throw new Error("Keine News Daten");
+
+                // XML Parsing im Browser
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(data.contents, "text/xml");
+                const items = xml.querySelectorAll("item");
+
+                let html = "";
+                // Zeige die ersten 3 Nachrichten
+                for (let i = 0; i < Math.min(3, items.length); i++) {
+                    const title = items[i].querySelector("title").textContent;
+                    const link = items[i].querySelector("link").textContent;
+                    const pubDate = new Date(items[i].querySelector("pubDate").textContent);
+                    
+                    const dateStr = pubDate.toLocaleDateString('de-DE', {day:'numeric', month:'numeric'}) + " " + pubDate.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
+
+                    html += `
+                        <li class="news-item">
+                            <a href="${link}" target="_blank">${title}</a>
+                            <span class="news-date">${dateStr}</span>
+                        </li>
+                    `;
+                }
+                container.innerHTML = html;
+
+            } catch (e) {
+                log("News Fehler: " + e.message, true);
+                container.innerHTML = '<li class="sub-info">News derzeit nicht verfügbar.</li>';
+            }
+        }
+
         function updateAll() {
             updateTime();
             fetchWeather();
             fetchTransport();
+            fetchNews();
         }
 
+        // Init
         updateAll();
         setInterval(updateTime, 1000);
         setInterval(fetchTransport, 60000);
+        // News nur alle 10 Minuten refreshen
+        setInterval(fetchNews, 600000);
 
     </script>
 </body>
